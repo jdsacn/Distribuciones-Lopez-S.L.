@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Tesorería Definitivo | Nivel Empresarial</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ================= VARIABLES Y TEMA ================= */
+        :root {
+            --bg-app: #f1f5f9;
+            --bg-sidebar: #0f172a;
+            --sidebar-hover: #1e293b;
+            --primary: #0284c7; 
+            --primary-hover: #0369a1;
+            --secondary: #475569;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --success: #059669;
+            --success-bg: #d1fae5;
+            --warning: #d97706;
+            --warning-bg: #fef3c7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --white: #ffffff;
+            --font-main: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* ================= RESET Y ESTRUCTURA ================= */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-main); }
+        body { display: flex; height: 100vh; overflow: hidden; background-color: var(--bg-app); color: var(--text-dark); font-size: 13px; }
+
+        /* ================= SIDEBAR ================= */
+        .sidebar { width: 250px; background-color: var(--bg-sidebar); color: var(--white); display: flex; flex-direction: column; flex-shrink: 0; box-shadow: 2px 0 10px rgba(0,0,0,0.1); z-index: 10;}
+        .brand { padding: 25px 20px; background-color: #020617; border-bottom: 1px solid #1e293b; text-align: center; }
+        .logo-empresa { max-width: 100px; max-height: 100px; border-radius: 6px; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); object-fit: contain; background-color: var(--white); padding: 4px; }
+        .brand h2 { font-size: 1rem; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;}
+        .brand p { font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;}
+        
+        .nav-menu { flex: 1; padding: 15px 0; overflow-y: auto; }
+        .nav-group { font-size: 0.65rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px; padding: 10px 25px 5px; font-weight: 700; }
+        .nav-item { padding: 12px 25px; display: flex; align-items: center; color: #cbd5e1; text-decoration: none; cursor: pointer; border-left: 3px solid transparent; transition: all 0.2s ease; font-weight: 500;}
+        .nav-item:hover, .nav-item.active { background-color: var(--sidebar-hover); color: var(--white); }
+        .nav-item.active { border-left-color: var(--primary); background-color: rgba(2, 132, 199, 0.15);}
+        .nav-item i { margin-right: 12px; font-style: normal; width: 18px; text-align: center; font-size: 1.1rem; opacity: 0.8;}
+
+        /* ================= MAIN CONTENT ================= */
+        .main-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .topbar { background: var(--white); padding: 15px 35px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.03); flex-shrink: 0;}
+        .topbar h1 { font-size: 1.3rem; font-weight: 600; color: var(--text-dark); letter-spacing: -0.3px;}
+        .user-info { display: flex; align-items: center; gap: 15px; font-weight: 500; font-size: 0.8rem;}
+        
+        .content-scroll { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .content { padding: 25px 35px; flex: 1;}
+        
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ================= COMPONENTES ================= */
+        .card { background: var(--white); border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03); border: 1px solid var(--border); margin-bottom: 25px; padding: 20px;}
+        .card-header { font-size: 1.05rem; font-weight: 600; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); color: var(--text-dark); display: flex; justify-content: space-between; align-items: center;}
+
+        /* Dashboard KPIs */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 25px; }
+        .kpi { padding: 20px; border-radius: 8px; border: 1px solid var(--border); background: var(--white); position: relative; }
+        .kpi::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; border-radius: 8px 8px 0 0;}
+        .kpi.primary::before { background-color: var(--primary); }
+        .kpi.success::before { background-color: var(--success); } .kpi.success .kpi-value { color: var(--success); }
+        .kpi.warning::before { background-color: var(--warning); } .kpi.warning .kpi-value { color: var(--warning); }
+        .kpi.danger::before { background-color: var(--danger); } .kpi.danger .kpi-value { color: var(--danger); }
+        
+        .kpi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .kpi-title { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px;}
+        .kpi-value { font-size: 1.6rem; font-weight: 700; font-family: monospace; letter-spacing: -0.5px;}
+        .kpi-sub { font-size: 0.7rem; margin-top: 5px; color: #94a3b8; font-weight: 500;}
+
+        /* Tablas */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background: #f8fafc; padding: 12px 10px; font-weight: 600; color: var(--secondary); border-bottom: 2px solid var(--border); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;}
+        td { padding: 12px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tbody tr:hover { background-color: #f1f5f9; }
+        
+        .text-right { text-align: right; } .text-center { text-align: center; }
+        .amount { font-weight: 600; font-family: monospace; font-size: 0.95rem;}
+        .amount.pos { color: var(--success); } .amount.neg { color: var(--danger); }
+        .text-xs { font-size: 0.7rem; color: var(--text-muted); }
+
+        /* Badges */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block;}
+        .b-ingreso { background: var(--success-bg); color: #065f46; }
+        .b-gasto { background: var(--danger-bg); color: #991b1b; }
+        .b-pagado { background: var(--bg-app); color: var(--text-muted); border: 1px solid var(--border);}
+        .b-pendiente { background: var(--warning-bg); color: #b45309; border: 1px solid #fcd34d;}
+        .b-neutro { background: #e2e8f0; color: #334155; }
+
+        /* Formularios */
+        .form-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 15px; align-items: end; }
+        .col-2 { grid-column: span 2; } .col-3 { grid-column: span 3; } .col-4 { grid-column: span 4; } .col-5 { grid-column: span 5; } .col-6 { grid-column: span 6; } .col-8 { grid-column: span 8; } .col-12 { grid-column: span 12; }
+        @media (max-width: 1024px) { .col-2, .col-3, .col-4, .col-5 { grid-column: span 6; } }
+        
+        .form-group { display: flex; flex-direction: column; }
+        label { font-size: 0.75rem; font-weight: 600; margin-bottom: 6px; color: var(--secondary);}
+        input, select, textarea { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; transition: all 0.2s; background: var(--white); color: var(--text-dark);}
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15); }
+        input[readonly] { background-color: #f8fafc; cursor: not-allowed; font-weight: 600; color: var(--text-muted);}
+
+        /* Botones */
+        .btn { padding: 9px 16px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; letter-spacing: 0.2px;}
+        .btn-primary { background: var(--primary); color: white; } .btn-primary:hover { background: var(--primary-hover); }
+        .btn-success { background: var(--success); color: white; } .btn-success:hover { background: #047857; }
+        .btn-danger { background: var(--danger); color: white; } .btn-danger:hover { background: #b91c1c; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--secondary); } .btn-outline:hover { background: #f8fafc; color: var(--text-dark); }
+        .btn-sm { padding: 5px 10px; font-size: 0.7rem; border-radius: 4px;}
+        
+        .config-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+
+        /* ================= FOOTER ================= */
+        .app-footer { background-color: transparent; padding: 20px 35px; text-align: center; font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; border-top: 1px solid var(--border); margin-top: auto;}
+        .app-footer strong { color: var(--text-dark); font-weight: 600;}
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="logo-empresa.jpg" alt="Logo de la Empresa" class="logo-empresa" onerror="this.style.display='none'">
+            <h2 id="ui-company-name">Distribuciones López, S.L.</h2>
+            <p>ERP Corporate v7.1</p>
+        </div>
+        <nav class="nav-menu">
+            <div class="nav-group">Análisis</div>
+            <a class="nav-item active" onclick="cambiarVista('dashboard', this)"><i>📊</i> Cuadro de Mando</a>
+            
+            <div class="nav-group">Gestión de Tesorería</div>
+            <a class="nav-item" onclick="cambiarVista('bancos', this)"><i>🏦</i> Bancos y Cajas</a>
+            <a class="nav-item" onclick="cambiarVista('emitidas', this)"><i>📈</i> Cuentas por Cobrar</a>
+            <a class="nav-item" onclick="cambiarVista('recibidas', this)"><i>📉</i> Cuentas por Pagar</a>
+            
+            <div class="nav-group">Contabilidad</div>
+            <a class="nav-item" onclick="cambiarVista('diario', this)"><i>📓</i> Nuevo Asiento (Diario)</a>
+            
+            <div class="nav-group">Maestros</div>
+            <a class="nav-item" onclick="cambiarVista('contactos', this)"><i>👥</i> Directorio (CRM)</a>
+            <a class="nav-item" onclick="cambiarVista('config', this)"><i>⚙️</i> Configuración</a>
+        </nav>
+    </aside>
+
+    <div class="main-wrapper">
+        <header class="topbar">
+            <h1 id="view-title">Cuadro de Mando Financiero</h1>
+            <div class="user-info">
+                <span id="current-date" style="color: var(--text-muted);"></span>
+                <span class="badge b-ingreso" style="background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">ADMINISTRADOR</span>
+            </div>
+        </header>
+
+        <div class="content-scroll">
+            <main class="content">
+
+                <section id="vista-dashboard" class="view active">
+                    <div class="kpi-grid">
+                        <div class="kpi primary">
+                            <div class="kpi-header"><span class="kpi-title">Posición Global (Bancos)</span></div>
+                            <div class="kpi-value" id="dash-liquidez">0,00</div>
+                            <div class="kpi-sub">Suma de saldos de todas las cuentas</div>
+                        </div>
+                        <div class="kpi success">
+                            <div class="kpi-header"><span class="kpi-title">Resultado de Explotación</span></div>
+                            <div class="kpi-value" id="dash-beneficio">0,00</div>
+                            <div class="kpi-sub">Base Imponible (Ingresos - Gastos)</div>
+                        </div>
+                        <div class="kpi warning">
+                            <div class="kpi-header"><span class="kpi-title">Riesgo Comercial (Cobros)</span></div>
+                            <div class="kpi-value" id="dash-cobros">0,00</div>
+                            <div class="kpi-sub">Derechos de cobro pendientes</div>
+                        </div>
+                        <div class="kpi danger">
+                            <div class="kpi-header"><span class="kpi-title">Obligaciones (Pagos)</span></div>
+                            <div class="kpi-value" id="dash-pagos">0,00</div>
+                            <div class="kpi-sub">Deuda a corto plazo con proveedores</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header" id="chart-title">Evolución de Ingresos y Gastos</div>
+                        <div style="position: relative; height: 300px; width: 100%;">
+                            <canvas id="financeChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="config-layout">
+                        <div class="card" style="margin-bottom: 0;">
+                            <div class="card-header">Liquidación de Impuestos Acumulados</div>
+                            <table style="font-size: 0.8rem; margin-bottom: 10px;">
+                                <tbody>
+                                    <tr><td><strong>IVA Repercutido</strong> (Ventas)</td><td class="text-right amount pos" id="iva-repercutido">0,00</td></tr>
+                                    <tr><td><strong>IVA Soportado</strong> (Compras)</td><td class="text-right amount neg" id="iva-soportado">0,00</td></tr>
+                                    <tr style="background-color: #f8fafc; border-top: 2px solid var(--border);">
+                                        <td><strong>Saldo IVA (A <span id="iva-texto-resultado">Liquidar</span>)</strong></td>
+                                        <td class="text-right amount" id="iva-resultado" style="font-size: 1.1rem;">0,00</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <table style="font-size: 0.8rem;">
+                                <tbody>
+                                    <tr><td><strong>Retenciones IRPF Practicadas</strong> (A ingresar)</td><td class="text-right amount neg" id="irpf-practicado">0,00</td></tr>
+                                    <tr><td><strong>Retenciones IRPF Soportadas</strong> (A deducir)</td><td class="text-right amount pos" id="irpf-soportado">0,00</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="card" style="margin-bottom: 0;">
+                            <div class="card-header">Previsión: Vencimientos a 15 días</div>
+                            <div class="table-responsive">
+                                <table style="font-size: 0.75rem;">
+                                    <thead><tr><th>F. Límite</th><th>Tercero / Concepto</th><th class="text-right">Importe</th></tr></thead>
+                                    <tbody id="tabla-vencimientos"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="vista-bancos" class="view">
+                    <div class="card">
+                        <div class="card-header">
+                            <span>Posición de Cuentas de Tesorería</span>
+                            <button class="btn btn-sm btn-outline" onclick="abrirModalBanco()">+ Nueva Cuenta</button>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr><th>Ref. Cuenta / IBAN</th><th>Entidad Bancaria</th><th>Tipo</th><th class="text-right">Saldo Actual</th></tr></thead>
+                                <tbody id="tabla-bancos"></tbody>
+                                <tfoot>
+                                    <tr style="background-color: #f1f5f9; font-weight: bold;">
+                                        <td colspan="3" class="text-right">POSICIÓN GLOBAL DE LIQUIDEZ:</td>
+                                        <td class="text-right amount" id="total-bancos" style="font-size: 1.1rem; color: var(--primary);">0,00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="vista-contactos" class="view">
+                    <div class="card" style="background-color: #f8fafc; border: 1px dashed var(--secondary);">
+                        <div class="card-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">Añadir Nuevo Contacto (Tercero)</div>
+                        <form id="form-contacto" style="margin-top: 15px;">
+                            <div class="form-grid">
+                                <div class="form-group col-2">
+                                    <label>Tipo</label>
+                                    <select id="cont-tipo" required>
+                                        <option value="Cliente">Cliente</option>
+                                        <option value="Proveedor">Proveedor</option>
+                                        <option value="Acreedor">Acreedor</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-2">
+                                    <label>NIF/CIF</label>
+                                    <input type="text" id="cont-nif" required>
+                                </div>
+                                <div class="form-group col-6">
+                                    <label>Razón Social / Nombre</label>
+                                    <input type="text" id="cont-nombre" required>
+                                </div>
+                                <div class="form-group col-2">
+                                    <button type="submit" class="btn btn-secondary" style="height: 35px; width: 100%; margin-top: 20px; background-color: var(--secondary); color: white;">Guardar Ficha</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">Directorio de Entidades</div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr><th>ID</th><th>Tipo</th><th>NIF/CIF</th><th>Razón Social</th><th class="text-right">Volumen Op. Acumulado</th></tr></thead>
+                                <tbody id="tabla-directorio"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="vista-diario" class="view">
+                    <div class="card" style="border-left: 4px solid var(--primary);">
+                        <div class="card-header" style="color: var(--primary);">Registro de Operación Comercial (Factura)</div>
+                        <form id="form-operacion">
+                            <div class="form-grid">
+                                <div class="form-group col-2">
+                                    <label>Naturaleza</label>
+                                    <select id="form-tipo" required onchange="actualizarFormularioUI()">
+                                        <option value="ingreso">Ingreso (Venta)</option>
+                                        <option value="gasto">Gasto (Compra)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-3">
+                                    <label>Categoría (PGC)</label>
+                                    <select id="form-categoria" required></select>
+                                </div>
+                                <div class="form-group col-5">
+                                    <label>Tercero (Cliente/Proveedor)</label>
+                                    <select id="form-contacto-select" required></select>
+                                </div>
+                                <div class="form-group col-2">
+                                    <label>Nº Documento / Ref.</label>
+                                    <input type="text" id="form-concepto" placeholder="Ej: F2026-001" required>
+                                </div>
+
+                                <div class="form-group col-2">
+                                    <label>Base Imponible</label>
+                                    <input type="number" id="form-base" step="0.01" min="0" placeholder="0.00" required oninput="calcularTotal()">
+                                </div>
+                                <div class="form-group col-2">
+                                    <label>% IVA</label>
+                                    <select id="form-iva" required onchange="calcularTotal()">
+                                        <option value="21">21% (General)</option>
+                                        <option value="10">10% (Reducido)</option>
+                                        <option value="4">4% (Súper)</option>
+                                        <option value="0">0% (Exento)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-2">
+                                    <label>% Retención (IRPF)</label>
+                                    <select id="form-irpf" required onchange="calcularTotal()">
+                                        <option value="0">0% (Sin retención)</option>
+                                        <option value="15">15% (Profesionales)</option>
+                                        <option value="19">19% (Alquileres/Capital)</option>
+                                        <option value="7">7% (Nuevos prof.)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-3">
+                                    <label>Desglose Fiscal</label>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted); padding-top: 5px;" id="texto-desglose">
+                                        Cuota IVA: 0.00 | Ret: 0.00
+                                    </div>
+                                </div>
+                                <div class="form-group col-3">
+                                    <label style="color: var(--primary); font-weight: 700;">TOTAL LÍQUIDO A PAGAR/COBRAR</label>
+                                    <input type="text" id="form-total" readonly value="0.00" style="font-weight: bold; color: var(--primary); border-color: var(--primary); background-color: #f0fdf4;">
+                                </div>
+
+                                <div class="form-group col-2">
+                                    <label>F. Emisión</label>
+                                    <input type="date" id="form-fecha" required>
+                                </div>
+                                <div class="form-group col-2">
+                                    <label>Estado Liquidación</label>
+                                    <select id="form-estado" required onchange="toggleVencimiento()">
+                                        <option value="pagado">Liquidado (Pagado/Cobrado)</option>
+                                        <option value="pendiente" selected>Pendiente (CxC / CxP)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-2">
+                                    <label>F. Vencimiento</label>
+                                    <input type="date" id="form-vencimiento" required>
+                                </div>
+                                <div class="form-group col-4">
+                                    <label>Cuenta de Tesorería (Origen/Destino)</label>
+                                    <select id="form-cuenta-banco" required></select>
+                                </div>
+                                <div class="form-group col-2">
+                                    <button type="submit" class="btn btn-primary" style="height: 35px; width: 100%; margin-top: 20px;">Contabilizar</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">Libro Diario (Historial de Asientos)</div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr><th>Ref. Interna / Fecha</th><th>Tercero / Documento</th><th>Cuenta Contable</th><th>Base</th><th>Impuestos</th><th class="text-right">Líquido Total</th><th>Estado</th><th class="text-center">Tesorería</th></tr>
+                                </thead>
+                                <tbody id="tabla-diario"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="vista-emitidas" class="view">
+                    <div class="card">
+                        <div class="card-header">Cartera de Clientes (Cuentas por Cobrar)</div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr><th>Documento</th><th>Cliente</th><th>Emisión</th><th>Vencimiento</th><th class="text-right">Total Liquido</th><th>Estado</th><th class="text-center">Acción</th></tr></thead>
+                                <tbody id="tabla-emitidas"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="vista-recibidas" class="view">
+                    <div class="card">
+                        <div class="card-header">Cartera de Proveedores (Cuentas por Pagar)</div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead><tr><th>Documento</th><th>Proveedor / Acreedor</th><th>Emisión</th><th>Vencimiento</th><th class="text-right">Total Liquido</th><th>Estado</th><th class="text-center">Acción</th></tr></thead>
+                                <tbody id="tabla-recibidas"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="vista-config" class="view">
+                    <form id="form-config">
+                        <div class="config-layout">
+                            <div class="card">
+                                <div class="card-header">Sociedad Mandante</div>
+                                <div class="form-grid">
+                                    <div class="form-group col-12">
+                                        <label>Razón Social</label>
+                                        <input type="text" id="config-nombre" required>
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label>NIF / CIF</label>
+                                        <input type="text" id="config-nif">
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label>Teléfono</label>
+                                        <input type="text" id="config-telefono">
+                                    </div>
+                                    <div class="form-group col-12">
+                                        <label>Dirección Fiscal</label>
+                                        <textarea id="config-direccion" rows="2"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="card">
+                                    <div class="card-header">Parámetros del Sistema</div>
+                                    <div class="form-grid">
+                                        <div class="form-group col-6">
+                                            <label>Divisa Local</label>
+                                            <select id="config-moneda">
+                                                <option value="EUR">Euros (EUR)</option>
+                                                <option value="USD">Dólares (USD)</option>
+                                                <option value="GBP">Libras (GBP)</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label>Ejercicio</label>
+                                            <select id="config-ejercicio">
+                                                <option value="2025">2025</option>
+                                                <option value="2026">2026</option>
+                                                <option value="2027">2027</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">Guardar Parámetros</button>
+                                </div>
+
+                                <div class="card" style="border-color: var(--danger); background-color: #fef2f2;">
+                                    <div class="card-header" style="color: var(--danger); border-bottom: none; margin-bottom: 5px;">Mantenimiento de Base de Datos</div>
+                                    <p style="font-size: 0.7rem; color: var(--danger); margin-bottom: 10px;">Borrado total e irreversible de todas las tablas (Diario, Bancos, Contactos).</p>
+                                    <button type="button" class="btn btn-danger" style="width: 100%;" onclick="resetearSistema()">Formatear ERP</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+
+            </main>
+
+            <footer class="app-footer">
+                &copy; <span id="year-footer">2026</span> <span id="company-footer">Distribuciones López, S.L.</span> - ERP Corporate v7.1.<br>
+                <strong>Diseñado por Consuelo.</strong>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_DATA = {
+            empresa: "Distribuciones López, S.L.", nif: "", direccion: "", telefono: "", moneda: "EUR", ejercicio: "2026",
+            siguienteIdOp: 20260001, siguienteIdCont: 100, siguienteIdBanco: 1,
+            contactos: [
+                { id: 1, tipo: "Cliente", nif: "A11111111", nombre: "Cliente Mostrador (Varios)" },
+                { id: 2, tipo: "Proveedor", nif: "B22222222", nombre: "Proveedor Genérico" }
+            ],
+            cuentasBancarias: [
+                { id: 1, iban: "ES91 2100 0000 0000", banco: "CaixaBank Cuenta Principal", tipo: "Corriente", saldoInicial: 0 },
+                { id: 2, iban: "CAJA", banco: "Caja Fuerte (Efectivo)", tipo: "Efectivo", saldoInicial: 0 }
+            ],
+            operaciones: []
+        };
+
+        let datos = JSON.parse(localStorage.getItem('erp_lopez_v7')) || DEFAULT_DATA;
+
+        const categorias = {
+            ingreso: ['(700) Venta de Mercaderías', '(705) Prestación de Servicios', '(769) Otros Ingresos Financieros'],
+            gasto: ['(600) Compra de Mercaderías', '(621) Arrendamientos y Cánones', '(628) Suministros (Agua, Luz)', '(629) Otros Servicios Exteriores', '(640) Sueldos y Salarios', '(631) Otros Tributos']
+        };
+
+        const hoy = new Date();
+        document.getElementById('current-date').innerText = hoy.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        
+        document.getElementById('form-fecha').valueAsDate = hoy;
+        const vDefecto = new Date(); vDefecto.setDate(hoy.getDate() + 30);
+        document.getElementById('form-vencimiento').valueAsDate = vDefecto;
+
+        let chartFlujoCaja = null;
+
+        function formatMoneda(valor) { return parseFloat(valor).toLocaleString('es-ES', { style: 'currency', currency: datos.moneda }); }
+        
+        function cambiarVista(vista, elemento) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('vista-' + vista).classList.add('active');
+            if(elemento) {
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                elemento.classList.add('active');
+                document.getElementById('view-title').innerText = elemento.innerText.substring(2);
+            }
+        }
+
+        function actualizarFormularioUI() {
+            const tipo = document.getElementById('form-tipo').value;
+            
+            const selectCat = document.getElementById('form-categoria');
+            selectCat.innerHTML = '';
+            categorias[tipo].forEach(cat => selectCat.innerHTML += `<option value="${cat}">${cat}</option>`);
+
+            const selectCont = document.getElementById('form-contacto-select');
+            selectCont.innerHTML = '';
+            datos.contactos.forEach(c => {
+                selectCont.innerHTML += `<option value="${c.id}">${c.nombre} (${c.nif})</option>`;
+            });
+
+            const selectBanco = document.getElementById('form-cuenta-banco');
+            selectBanco.innerHTML = '';
+            datos.cuentasBancarias.forEach(b => {
+                selectBanco.innerHTML += `<option value="${b.id}">${b.banco} [${b.iban}]</option>`;
+            });
+
+            calcularTotal();
+        }
+
+        function calcularTotal() {
+            const base = parseFloat(document.getElementById('form-base').value) || 0;
+            const ivaPct = parseFloat(document.getElementById('form-iva').value) || 0;
+            const irpfPct = parseFloat(document.getElementById('form-irpf').value) || 0;
+            
+            const cuotaIva = base * (ivaPct / 100);
+            const cuotaIrpf = base * (irpfPct / 100);
+            const total = base + cuotaIva - cuotaIrpf;
+
+            document.getElementById('texto-desglose').innerText = `+ IVA: ${cuotaIva.toFixed(2)} | - Ret. IRPF: ${cuotaIrpf.toFixed(2)}`;
+            document.getElementById('form-total').value = total.toFixed(2);
+        }
+
+        function toggleVencimiento() {
+            if (document.getElementById('form-estado').value === 'pagado') {
+                document.getElementById('form-vencimiento').valueAsDate = document.getElementById('form-fecha').valueAsDate;
+            }
+        }
+
+        document.getElementById('form-contacto').addEventListener('submit', function(e) {
+            e.preventDefault();
+            datos.contactos.push({
+                id: datos.siguienteIdCont++,
+                tipo: document.getElementById('cont-tipo').value,
+                nif: document.getElementById('cont-nif').value,
+                nombre: document.getElementById('cont-nombre').value
+            });
+            document.getElementById('form-contacto').reset();
+            procesarMotorFinanciero();
+            actualizarFormularioUI();
+        });
+
+        document.getElementById('form-operacion').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const base = parseFloat(document.getElementById('form-base').value);
+            const iva = parseFloat(document.getElementById('form-iva').value);
+            const irpf = parseFloat(document.getElementById('form-irpf').value);
+
+            datos.operaciones.push({
+                id: datos.siguienteIdOp++,
+                tipo: document.getElementById('form-tipo').value,
+                categoria: document.getElementById('form-categoria').value,
+                idContacto: parseInt(document.getElementById('form-contacto-select').value),
+                concepto: document.getElementById('form-concepto').value,
+                fecha: document.getElementById('form-fecha').value,
+                base: base, ivaPct: iva, irpfPct: irpf,
+                cuotaIva: base * (iva/100), cuotaIrpf: base * (irpf/100),
+                total: parseFloat(document.getElementById('form-total').value),
+                estado: document.getElementById('form-estado').value,
+                vencimiento: document.getElementById('form-vencimiento').value,
+                idBanco: parseInt(document.getElementById('form-cuenta-banco').value)
+            });
+            
+            document.getElementById('form-concepto').value = ''; 
+            document.getElementById('form-base').value = '';
+            calcularTotal();
+            procesarMotorFinanciero();
+            cambiarVista('dashboard', document.querySelectorAll('.nav-item')[0]);
+        });
+
+        function liquidar(idOp) {
+            const op = datos.operaciones.find(o => o.id === idOp);
+            if(op) { 
+                op.estado = 'pagado'; 
+                op.fechaLiquidacion = new Date().toISOString().split('T')[0];
+                procesarMotorFinanciero(); 
+            }
+        }
+
+        function abrirModalBanco() {
+            const n = prompt("Nombre/Entidad del nuevo Banco o Caja:");
+            if(!n) return;
+            const i = prompt("IBAN o Referencia de la cuenta:");
+            datos.cuentasBancarias.push({ id: datos.siguienteIdBanco++, iban: i || "N/A", banco: n, tipo: "Bancaria", saldoInicial: 0 });
+            procesarMotorFinanciero();
+            actualizarFormularioUI();
+        }
+
+        function procesarMotorFinanciero() {
+            localStorage.setItem('erp_lopez_v7', JSON.stringify(datos));
+
+            document.getElementById('ui-company-name').innerText = datos.empresa;
+            document.querySelector('.logo-empresa').alt = datos.empresa;
+            
+            // Actualizar datos del Footer
+            document.getElementById('company-footer').innerText = datos.empresa;
+            document.getElementById('year-footer').innerText = datos.ejercicio;
+            
+            document.getElementById('config-nombre').value = datos.empresa;
+            document.getElementById('config-nif').value = datos.nif;
+            document.getElementById('config-direccion').value = datos.direccion;
+            document.getElementById('config-telefono').value = datos.telefono;
+            document.getElementById('config-moneda').value = datos.moneda;
+            document.getElementById('config-ejercicio').value = datos.ejercicio;
+
+            let resExplotacion = 0, carCobros = 0, carPagos = 0;
+            let ivRep = 0, ivSop = 0, irpfPrac = 0, irpfSop = 0;
+            
+            let saldosBancos = {};
+            datos.cuentasBancarias.forEach(b => saldosBancos[b.id] = b.saldoInicial);
+
+            let volContactos = {};
+            datos.contactos.forEach(c => volContactos[c.id] = 0);
+
+            const tbD = document.getElementById('tabla-diario'); tbD.innerHTML = '';
+            const tbE = document.getElementById('tabla-emitidas'); tbE.innerHTML = '';
+            const tbR = document.getElementById('tabla-recibidas'); tbR.innerHTML = '';
+            const tbV = document.getElementById('tabla-vencimientos'); tbV.innerHTML = '';
+
+            const opsOrder = [...datos.operaciones].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+            const limiteVenc = new Date(); limiteVenc.setDate(hoy.getDate() + 15);
+
+            opsOrder.forEach(op => {
+                const contacto = datos.contactos.find(c => c.id === op.idContacto) || { nombre: "Desconocido" };
+                const banco = datos.cuentasBancarias.find(b => b.id === op.idBanco) || { banco: "N/A" };
+                
+                volContactos[op.idContacto] += op.base; 
+
+                const cPos = op.tipo === 'ingreso' ? 'pos' : 'neg';
+                const fEmi = new Date(op.fecha).toLocaleDateString();
+                const fVen = new Date(op.vencimiento).toLocaleDateString();
+                const badgeT = `<span class="badge ${op.tipo === 'ingreso' ? 'b-ingreso' : 'b-gasto'}">${op.tipo}</span>`;
+                const badgeE = `<span class="badge ${op.estado === 'pagado' ? 'b-pagado' : 'b-pendiente'}">${op.estado}</span>`;
+                
+                if (op.tipo === 'ingreso') {
+                    resExplotacion += op.base; ivRep += op.cuotaIva; irpfSop += op.cuotaIrpf;
+                    if (op.estado === 'pagado') saldosBancos[op.idBanco] += op.total; else carCobros += op.total;
+                } else {
+                    resExplotacion -= op.base; ivSop += op.cuotaIva; irpfPrac += op.cuotaIrpf;
+                    if (op.estado === 'pagado') saldosBancos[op.idBanco] -= op.total; else carPagos += op.total;
+                }
+
+                tbD.insertAdjacentHTML('beforeend', `<tr>
+                    <td><span class="text-xs">OP-${op.id}</span><br><strong>${fEmi}</strong></td>
+                    <td><strong>${contacto.nombre}</strong><br><span class="text-xs">${op.concepto}</span></td>
+                    <td>${badgeT}<br><span class="text-xs">${op.categoria.substring(0,18)}...</span></td>
+                    <td>${formatMoneda(op.base)}</td>
+                    <td><span class="text-xs">IVA: ${op.cuotaIva.toFixed(2)}</span><br><span class="text-xs">IRPF: ${op.cuotaIrpf.toFixed(2)}</span></td>
+                    <td class="text-right amount ${cPos}">${formatMoneda(op.total)}</td>
+                    <td>${badgeE}</td>
+                    <td class="text-center text-xs">${banco.banco.substring(0,15)}</td>
+                </tr>`);
+
+                const btnLiq = op.estado === 'pendiente' ? `<button class="btn btn-sm btn-primary" onclick="liquidar(${op.id})">Liquidar</button>` : `<span style="color:var(--success);font-weight:bold;font-size:0.75rem;">✓ OK</span>`;
+                const filaCartera = `<tr><td>${op.concepto}</td><td><strong>${contacto.nombre}</strong><br><span class="text-xs">${op.categoria}</span></td><td>${fEmi}</td><td style="color:${new Date(op.vencimiento)<hoy && op.estado==='pendiente'?'var(--danger)':'inherit'};">${fVen}</td><td class="text-right amount ${cPos}">${formatMoneda(op.total)}</td><td>${badgeE}</td><td class="text-center">${btnLiq}</td></tr>`;
+                
+                if (op.tipo === 'ingreso') tbE.insertAdjacentHTML('beforeend', filaCartera);
+                if (op.tipo === 'gasto') tbR.insertAdjacentHTML('beforeend', filaCartera);
+
+                if (op.estado === 'pendiente' && new Date(op.vencimiento) <= limiteVenc) {
+                    tbV.insertAdjacentHTML('beforeend', `<tr><td><strong style="color:var(--danger)">${fVen}</strong></td><td>${badgeT} ${contacto.nombre.substring(0,20)}</td><td class="text-right amount ${cPos}">${formatMoneda(op.total)}</td></tr>`);
+                }
+            });
+
+            const tbB = document.getElementById('tabla-bancos'); tbB.innerHTML = '';
+            let liquidezTotal = 0;
+            datos.cuentasBancarias.forEach(b => {
+                const saldo = saldosBancos[b.id];
+                liquidezTotal += saldo;
+                tbB.insertAdjacentHTML('beforeend', `<tr><td><span class="text-xs">${b.iban}</span></td><td><strong>${b.banco}</strong></td><td><span class="badge b-neutro">${b.tipo}</span></td><td class="text-right amount ${saldo<0?'neg':'pos'}">${formatMoneda(saldo)}</td></tr>`);
+            });
+            document.getElementById('total-bancos').innerText = formatMoneda(liquidezTotal);
+            document.getElementById('dash-liquidez').innerText = formatMoneda(liquidezTotal);
+
+            const tbC = document.getElementById('tabla-directorio'); tbC.innerHTML = '';
+            datos.contactos.forEach(c => {
+                tbC.insertAdjacentHTML('beforeend', `<tr><td><span class="text-xs">C-${c.id}</span></td><td><span class="badge b-neutro">${c.tipo}</span></td><td>${c.nif}</td><td><strong>${c.nombre}</strong></td><td class="text-right amount">${formatMoneda(volContactos[c.id])}</td></tr>`);
+            });
+
+            const elRes = document.getElementById('dash-beneficio');
+            elRes.innerText = formatMoneda(resExplotacion); elRes.style.color = resExplotacion >= 0 ? 'var(--success)' : 'var(--danger)';
+            document.getElementById('dash-cobros').innerText = formatMoneda(carCobros);
+            document.getElementById('dash-pagos').innerText = formatMoneda(carPagos);
+
+            document.getElementById('iva-repercutido').innerText = formatMoneda(ivRep);
+            document.getElementById('iva-soportado').innerText = formatMoneda(ivSop);
+            const difIva = ivRep - ivSop;
+            const elIvaRes = document.getElementById('iva-resultado');
+            elIvaRes.innerText = formatMoneda(Math.abs(difIva));
+            if(difIva > 0) { document.getElementById('iva-texto-resultado').innerText="A Pagar"; elIvaRes.className="text-right amount neg"; } 
+            else { document.getElementById('iva-texto-resultado').innerText="A Compensar"; elIvaRes.className="text-right amount pos"; }
+
+            document.getElementById('irpf-practicado').innerText = formatMoneda(irpfPrac);
+            document.getElementById('irpf-soportado').innerText = formatMoneda(irpfSop);
+
+            renderGraficoGrafico();
+        }
+
+        function renderGraficoGrafico() {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            const totalesPorMes = {};
+            
+            datos.operaciones.forEach(op => {
+                const f = new Date(op.fecha);
+                const mesClave = f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0');
+                
+                if (!totalesPorMes[mesClave]) totalesPorMes[mesClave] = { ingresos: 0, gastos: 0 };
+                
+                if (op.tipo === 'ingreso') totalesPorMes[mesClave].ingresos += op.total; 
+                else totalesPorMes[mesClave].gastos += op.total;
+            });
+
+            const mesesOrdenados = Object.keys(totalesPorMes).sort();
+            const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            const labels = mesesOrdenados.map(clave => {
+                const partes = clave.split('-');
+                return nombresMeses[parseInt(partes[1]) - 1] + " " + partes[0];
+            });
+
+            const dataIngresos = mesesOrdenados.map(m => totalesPorMes[m].ingresos);
+            const dataGastos = mesesOrdenados.map(m => totalesPorMes[m].gastos);
+
+            if (chartFlujoCaja) chartFlujoCaja.destroy();
+
+            Chart.defaults.font.family = '"Inter", sans-serif';
+            Chart.defaults.color = '#64748b';
+
+            chartFlujoCaja = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels.length > 0 ? labels : ['Sin Datos'],
+                    datasets: [
+                        { label: `Ingresos (${datos.moneda})`, data: dataIngresos.length > 0 ? dataIngresos : [0], backgroundColor: '#059669', borderRadius: 4, barPercentage: 0.6 },
+                        { label: `Gastos (${datos.moneda})`, data: dataGastos.length > 0 ? dataGastos : [0], backgroundColor: '#dc2626', borderRadius: 4, barPercentage: 0.6 }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#e2e8f0' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('form-config').addEventListener('submit', function(e) {
+            e.preventDefault();
+            datos.empresa = document.getElementById('config-nombre').value;
+            datos.nif = document.getElementById('config-nif').value;
+            datos.telefono = document.getElementById('config-telefono').value;
+            datos.direccion = document.getElementById('config-direccion').value;
+            datos.moneda = document.getElementById('config-moneda').value;
+            datos.ejercicio = document.getElementById('config-ejercicio').value;
+            procesarMotorFinanciero();
+            alert("Parámetros guardados.");
+        });
+
+        function resetearSistema() {
+            if(confirm("Escribe 'FORMATO' para borrar todo:") === "FORMATO") {
+                localStorage.removeItem('erp_lopez_v7');
+                datos = JSON.parse(JSON.stringify(DEFAULT_DATA)); 
+                procesarMotorFinanciero();
+                actualizarFormularioUI();
+                alert("Sistema formateado.");
+            }
+        }
+
+        actualizarFormularioUI();
+        procesarMotorFinanciero();
+    </script>
+</body>
+</html>
