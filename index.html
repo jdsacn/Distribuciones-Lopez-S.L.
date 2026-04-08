@@ -13,7 +13,7 @@
             --bg-app: #f1f5f9;
             --bg-sidebar: #0f172a;
             --sidebar-hover: #1e293b;
-            --primary: #0284c7; /* Azul corporativo sobrio */
+            --primary: #0284c7; 
             --primary-hover: #0369a1;
             --secondary: #475569;
             --text-dark: #0f172a;
@@ -118,8 +118,11 @@
         .btn-sm { padding: 5px 10px; font-size: 0.7rem; border-radius: 4px;}
         
         .config-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
         hr { border: 0; border-top: 1px solid var(--border); margin: 20px 0; }
+
+        /* ================= FOOTER ================= */
+        .app-footer { background-color: transparent; padding: 20px 35px; text-align: center; font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; border-top: 1px solid var(--border); margin-top: auto;}
+        .app-footer strong { color: var(--text-dark); font-weight: 600;}
     </style>
 </head>
 <body>
@@ -128,7 +131,7 @@
         <div class="brand">
             <img src="logo-empresa.jpg" alt="Logo de la Empresa" class="logo-empresa" onerror="this.style.display='none'">
             <h2 id="ui-company-name">Distribuciones López, S.L.</h2>
-            <p>ERP Corporate v7.0</p>
+            <p>ERP Corporate v7.1</p>
         </div>
         <nav class="nav-menu">
             <div class="nav-group">Análisis</div>
@@ -185,8 +188,8 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header" id="chart-title">Evolución del Flujo de Caja (Cash Flow)</div>
-                        <div style="position: relative; height: 280px; width: 100%;">
+                        <div class="card-header" id="chart-title">Evolución de Ingresos y Gastos</div>
+                        <div style="position: relative; height: 300px; width: 100%;">
                             <canvas id="financeChart"></canvas>
                         </div>
                     </div>
@@ -465,11 +468,15 @@
                 </section>
 
             </main>
+
+            <footer class="app-footer">
+                &copy; <span id="year-footer">2026</span> <span id="company-footer">Distribuciones López, S.L.</span> - ERP Corporate v7.1.<br>
+                <strong>Diseñado por Consuelo.</strong>
+            </footer>
         </div>
     </div>
 
     <script>
-        // Modelo de Datos Estructural (Definitivo)
         const DEFAULT_DATA = {
             empresa: "Distribuciones López, S.L.", nif: "", direccion: "", telefono: "", moneda: "EUR", ejercicio: "2026",
             siguienteIdOp: 20260001, siguienteIdCont: 100, siguienteIdBanco: 1,
@@ -486,7 +493,6 @@
 
         let datos = JSON.parse(localStorage.getItem('erp_lopez_v7')) || DEFAULT_DATA;
 
-        // Diccionario PGC (Plan General Contable Básico)
         const categorias = {
             ingreso: ['(700) Venta de Mercaderías', '(705) Prestación de Servicios', '(769) Otros Ingresos Financieros'],
             gasto: ['(600) Compra de Mercaderías', '(621) Arrendamientos y Cánones', '(628) Suministros (Agua, Luz)', '(629) Otros Servicios Exteriores', '(640) Sueldos y Salarios', '(631) Otros Tributos']
@@ -495,14 +501,12 @@
         const hoy = new Date();
         document.getElementById('current-date').innerText = hoy.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
         
-        // Inicialización de Fechas
         document.getElementById('form-fecha').valueAsDate = hoy;
         const vDefecto = new Date(); vDefecto.setDate(hoy.getDate() + 30);
         document.getElementById('form-vencimiento').valueAsDate = vDefecto;
 
         let chartFlujoCaja = null;
 
-        // Utilidades
         function formatMoneda(valor) { return parseFloat(valor).toLocaleString('es-ES', { style: 'currency', currency: datos.moneda }); }
         
         function cambiarVista(vista, elemento) {
@@ -515,23 +519,19 @@
             }
         }
 
-        // Lógicas de Formularios
         function actualizarFormularioUI() {
             const tipo = document.getElementById('form-tipo').value;
             
-            // Llenar categorías
             const selectCat = document.getElementById('form-categoria');
             selectCat.innerHTML = '';
             categorias[tipo].forEach(cat => selectCat.innerHTML += `<option value="${cat}">${cat}</option>`);
 
-            // Filtrar contactos (sugerencia visual, aunque permite seleccionar todos)
             const selectCont = document.getElementById('form-contacto-select');
             selectCont.innerHTML = '';
             datos.contactos.forEach(c => {
                 selectCont.innerHTML += `<option value="${c.id}">${c.nombre} (${c.nif})</option>`;
             });
 
-            // Cargar bancos
             const selectBanco = document.getElementById('form-cuenta-banco');
             selectBanco.innerHTML = '';
             datos.cuentasBancarias.forEach(b => {
@@ -560,7 +560,6 @@
             }
         }
 
-        // Registrar Contacto
         document.getElementById('form-contacto').addEventListener('submit', function(e) {
             e.preventDefault();
             datos.contactos.push({
@@ -574,7 +573,6 @@
             actualizarFormularioUI();
         });
 
-        // Registrar Operación
         document.getElementById('form-operacion').addEventListener('submit', function(e) {
             e.preventDefault();
             const base = parseFloat(document.getElementById('form-base').value);
@@ -621,16 +619,16 @@
             actualizarFormularioUI();
         }
 
-        // MOTOR PRINCIPAL DE CÁLCULO
         function procesarMotorFinanciero() {
-            // Guardar Estado
             localStorage.setItem('erp_lopez_v7', JSON.stringify(datos));
 
-            // UI General
             document.getElementById('ui-company-name').innerText = datos.empresa;
             document.querySelector('.logo-empresa').alt = datos.empresa;
             
-            // Config Form
+            // Actualizar datos del Footer
+            document.getElementById('company-footer').innerText = datos.empresa;
+            document.getElementById('year-footer').innerText = datos.ejercicio;
+            
             document.getElementById('config-nombre').value = datos.empresa;
             document.getElementById('config-nif').value = datos.nif;
             document.getElementById('config-direccion').value = datos.direccion;
@@ -638,19 +636,15 @@
             document.getElementById('config-moneda').value = datos.moneda;
             document.getElementById('config-ejercicio').value = datos.ejercicio;
 
-            // Variables Acumuladoras
             let resExplotacion = 0, carCobros = 0, carPagos = 0;
             let ivRep = 0, ivSop = 0, irpfPrac = 0, irpfSop = 0;
             
-            // Estructura de Saldos Bancarios
             let saldosBancos = {};
             datos.cuentasBancarias.forEach(b => saldosBancos[b.id] = b.saldoInicial);
 
-            // Estructura Volumen Contactos
             let volContactos = {};
             datos.contactos.forEach(c => volContactos[c.id] = 0);
 
-            // Tablas DOM
             const tbD = document.getElementById('tabla-diario'); tbD.innerHTML = '';
             const tbE = document.getElementById('tabla-emitidas'); tbE.innerHTML = '';
             const tbR = document.getElementById('tabla-recibidas'); tbR.innerHTML = '';
@@ -663,7 +657,7 @@
                 const contacto = datos.contactos.find(c => c.id === op.idContacto) || { nombre: "Desconocido" };
                 const banco = datos.cuentasBancarias.find(b => b.id === op.idBanco) || { banco: "N/A" };
                 
-                volContactos[op.idContacto] += op.base; // Volumen se mide sobre base
+                volContactos[op.idContacto] += op.base; 
 
                 const cPos = op.tipo === 'ingreso' ? 'pos' : 'neg';
                 const fEmi = new Date(op.fecha).toLocaleDateString();
@@ -679,7 +673,6 @@
                     if (op.estado === 'pagado') saldosBancos[op.idBanco] -= op.total; else carPagos += op.total;
                 }
 
-                // Fila Diario Universal
                 tbD.insertAdjacentHTML('beforeend', `<tr>
                     <td><span class="text-xs">OP-${op.id}</span><br><strong>${fEmi}</strong></td>
                     <td><strong>${contacto.nombre}</strong><br><span class="text-xs">${op.concepto}</span></td>
@@ -691,20 +684,17 @@
                     <td class="text-center text-xs">${banco.banco.substring(0,15)}</td>
                 </tr>`);
 
-                // Filas CxC / CxP
                 const btnLiq = op.estado === 'pendiente' ? `<button class="btn btn-sm btn-primary" onclick="liquidar(${op.id})">Liquidar</button>` : `<span style="color:var(--success);font-weight:bold;font-size:0.75rem;">✓ OK</span>`;
                 const filaCartera = `<tr><td>${op.concepto}</td><td><strong>${contacto.nombre}</strong><br><span class="text-xs">${op.categoria}</span></td><td>${fEmi}</td><td style="color:${new Date(op.vencimiento)<hoy && op.estado==='pendiente'?'var(--danger)':'inherit'};">${fVen}</td><td class="text-right amount ${cPos}">${formatMoneda(op.total)}</td><td>${badgeE}</td><td class="text-center">${btnLiq}</td></tr>`;
                 
                 if (op.tipo === 'ingreso') tbE.insertAdjacentHTML('beforeend', filaCartera);
                 if (op.tipo === 'gasto') tbR.insertAdjacentHTML('beforeend', filaCartera);
 
-                // Vencimientos cortos
                 if (op.estado === 'pendiente' && new Date(op.vencimiento) <= limiteVenc) {
                     tbV.insertAdjacentHTML('beforeend', `<tr><td><strong style="color:var(--danger)">${fVen}</strong></td><td>${badgeT} ${contacto.nombre.substring(0,20)}</td><td class="text-right amount ${cPos}">${formatMoneda(op.total)}</td></tr>`);
                 }
             });
 
-            // Actualizar Bancos DOM y Liquidez Total
             const tbB = document.getElementById('tabla-bancos'); tbB.innerHTML = '';
             let liquidezTotal = 0;
             datos.cuentasBancarias.forEach(b => {
@@ -715,19 +705,16 @@
             document.getElementById('total-bancos').innerText = formatMoneda(liquidezTotal);
             document.getElementById('dash-liquidez').innerText = formatMoneda(liquidezTotal);
 
-            // Actualizar Directorio DOM
             const tbC = document.getElementById('tabla-directorio'); tbC.innerHTML = '';
             datos.contactos.forEach(c => {
                 tbC.insertAdjacentHTML('beforeend', `<tr><td><span class="text-xs">C-${c.id}</span></td><td><span class="badge b-neutro">${c.tipo}</span></td><td>${c.nif}</td><td><strong>${c.nombre}</strong></td><td class="text-right amount">${formatMoneda(volContactos[c.id])}</td></tr>`);
             });
 
-            // KPIs Dashboard
             const elRes = document.getElementById('dash-beneficio');
             elRes.innerText = formatMoneda(resExplotacion); elRes.style.color = resExplotacion >= 0 ? 'var(--success)' : 'var(--danger)';
             document.getElementById('dash-cobros').innerText = formatMoneda(carCobros);
             document.getElementById('dash-pagos').innerText = formatMoneda(carPagos);
 
-            // Impuestos
             document.getElementById('iva-repercutido').innerText = formatMoneda(ivRep);
             document.getElementById('iva-soportado').innerText = formatMoneda(ivSop);
             const difIva = ivRep - ivSop;
@@ -744,40 +731,49 @@
 
         function renderGraficoGrafico() {
             const ctx = document.getElementById('financeChart').getContext('2d');
-            const flujos = {};
+            const totalesPorMes = {};
             
             datos.operaciones.forEach(op => {
-                if(op.estado !== 'pagado') return; // Solo caja real
-                const f = new Date(op.fechaLiquidacion || op.fecha);
-                const mes = f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0');
-                if (!flujos[mes]) flujos[mes] = { in: 0, out: 0 };
-                if (op.tipo === 'ingreso') flujos[mes].in += op.total; else flujos[mes].out += op.total;
+                const f = new Date(op.fecha);
+                const mesClave = f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0');
+                
+                if (!totalesPorMes[mesClave]) totalesPorMes[mesClave] = { ingresos: 0, gastos: 0 };
+                
+                if (op.tipo === 'ingreso') totalesPorMes[mesClave].ingresos += op.total; 
+                else totalesPorMes[mesClave].gastos += op.total;
             });
 
-            const mesesOrd = Object.keys(flujos).sort();
-            const nomMes = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
-            const labels = mesesOrd.map(m => nomMes[parseInt(m.split('-')[1])-1] + " " + m.split('-')[0]);
-            
-            const dataNeto = mesesOrd.map(m => flujos[m].in - flujos[m].out);
+            const mesesOrdenados = Object.keys(totalesPorMes).sort();
+            const nombresMeses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            const labels = mesesOrdenados.map(clave => {
+                const partes = clave.split('-');
+                return nombresMeses[parseInt(partes[1]) - 1] + " " + partes[0];
+            });
+
+            const dataIngresos = mesesOrdenados.map(m => totalesPorMes[m].ingresos);
+            const dataGastos = mesesOrdenados.map(m => totalesPorMes[m].gastos);
 
             if (chartFlujoCaja) chartFlujoCaja.destroy();
 
             Chart.defaults.font.family = '"Inter", sans-serif';
+            Chart.defaults.color = '#64748b';
+
             chartFlujoCaja = new Chart(ctx, {
-                type: 'line',
+                type: 'bar',
                 data: {
-                    labels: labels.length ? labels : ['Sin Liquidez'],
-                    datasets: [{
-                        label: `Flujo de Caja Neto (${datos.moneda})`,
-                        data: dataNeto.length ? dataNeto : [0],
-                        borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)',
-                        borderWidth: 2, fill: true, tension: 0.3, pointBackgroundColor: '#0284c7'
-                    }]
+                    labels: labels.length > 0 ? labels : ['Sin Datos'],
+                    datasets: [
+                        { label: `Ingresos (${datos.moneda})`, data: dataIngresos.length > 0 ? dataIngresos : [0], backgroundColor: '#059669', borderRadius: 4, barPercentage: 0.6 },
+                        { label: `Gastos (${datos.moneda})`, data: dataGastos.length > 0 ? dataGastos : [0], backgroundColor: '#dc2626', borderRadius: 4, barPercentage: 0.6 }
+                    ]
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { grid: { borderDash: [5, 5] } }, x: { grid: { display: false } } }
+                    plugins: { legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 8 } } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#e2e8f0' } },
+                        x: { grid: { display: false } }
+                    }
                 }
             });
         }
@@ -797,14 +793,13 @@
         function resetearSistema() {
             if(confirm("Escribe 'FORMATO' para borrar todo:") === "FORMATO") {
                 localStorage.removeItem('erp_lopez_v7');
-                datos = JSON.parse(JSON.stringify(DEFAULT_DATA)); // Deep copy clone
+                datos = JSON.parse(JSON.stringify(DEFAULT_DATA)); 
                 procesarMotorFinanciero();
                 actualizarFormularioUI();
                 alert("Sistema formateado.");
             }
         }
 
-        // Boot Init
         actualizarFormularioUI();
         procesarMotorFinanciero();
     </script>
